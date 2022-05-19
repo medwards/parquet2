@@ -13,6 +13,24 @@ use super::reader::{finish_page, get_page_header, FinishedPage, PageMetaData};
 use super::PageFilter;
 
 /// Returns a stream of compressed data pages
+pub async fn get_page_stream_without_seek<'a, RR: AsyncRead + Unpin + Send>(
+    chunk_metadata: &'a ColumnChunkMetaData,
+    reader: &'a mut RR,
+    buffer: Vec<u8>,
+    pages_filter: PageFilter,
+) -> Result<impl Stream<Item = Result<CompressedDataPage>> + 'a> {
+    let page_metadata: PageMetaData = chunk_metadata.into();
+    Ok(_get_page_stream(
+        reader,
+        page_metadata.num_values,
+        page_metadata.compression,
+        page_metadata.descriptor,
+        buffer,
+        pages_filter,
+    ))
+}
+
+/// Returns a stream of compressed data pages
 pub async fn get_page_stream<'a, RR: AsyncRead + Unpin + Send + AsyncSeek>(
     column_metadata: &'a ColumnChunkMetaData,
     reader: &'a mut RR,
@@ -41,7 +59,7 @@ pub async fn get_page_stream_with_page_meta<RR: AsyncRead + Unpin + Send + Async
     ))
 }
 
-fn _get_page_stream<R: AsyncRead + AsyncSeek + Unpin + Send>(
+fn _get_page_stream<R: AsyncRead + Unpin + Send>(
     reader: &mut R,
     total_num_values: i64,
     compression: Compression,
@@ -63,8 +81,10 @@ fn _get_page_stream<R: AsyncRead + AsyncSeek + Unpin + Send>(
 
             if let Some(data_header) = data_header {
                 if !pages_filter(&descriptor, &data_header) {
-                    // page to be skipped, we sill need to seek
-                    reader.seek(SeekFrom::Current(read_size)).await?;
+                    // page to be skipped, we sill need to seek, but we only seek forward so just
+                    // read
+                    buffer.resize(read_size as usize, 0);
+                    reader.read_exact(&mut buffer).await?;
                     continue
                 }
             }

@@ -14,3 +14,5 @@ pub trait PageIterator: Iterator<Item = Result<CompressedDataPage, Error>> {
 
 #[cfg(feature = "stream")]
 pub use stream::get_page_stream;
+#[cfg(feature = "stream")]
+pub use stream::get_page_stream_without_seek;

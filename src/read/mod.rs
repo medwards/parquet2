@@ -13,10 +13,12 @@ use std::vec::IntoIter;
 pub use compression::{decompress, BasicDecompressor, Decompressor};
 pub use metadata::read_metadata;
 #[cfg(feature = "stream")]
-pub use page::get_page_stream;
+pub use page::{get_page_stream, get_page_stream_without_seek};
 pub use page::{IndexedPageReader, PageFilter, PageIterator, PageMetaData, PageReader};
 #[cfg(feature = "stream")]
 pub use stream::read_metadata as read_metadata_async;
+#[cfg(feature = "stream")]
+pub use stream::read_metadata_without_seek as read_metadata_without_seek_async;
 
 use crate::error::Error;
 use crate::metadata::{ColumnChunkMetaData, RowGroupMetaData};
